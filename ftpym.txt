@@ -1,0 +1,247 @@
+﻿<!DOCTYPE html>
+	<html lang="zh-CN">
+        <head>
+            <meta charset="utf-8">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta name="description" content="FTP程序快捷安装工具,快速一键上传源码">
+            <meta name="author" content="xxx">
+            <meta http-equiv="Content-Type" content="text/html" charset="utf-8">
+            <title>FrFTP程序快速安装</title>
+             <link rel="shortcut icon" href="favicon.png">
+            <link rel="stylesheet" href="//lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/twitter-bootstrap/3.4.1/css/bootstrap.min.css"/>
+<script>
+if (!window.jQuery) {
+    document.write('<link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css">');
+}
+</script>
+            <style type="text/css">
+            </style>
+        </head>
+        <body>     
+            
+		
+<?php
+/*****************************************************
+FTP快速上传-Xoris
+Hu60.cn
+2014.11.8
+-------------------------------
+$AppDir
+安装程序的总文件夹,里面包含安装程序,一个文件夹一种程序
+-------------------------------
+<select name="program" class="form-control">
+<option value="9gan">
+9gan php探针
+</option>
+<option value="aite_1_8">
+爱特文管 1.80经典版(较大 可能失败)
+</option>
+<option value="aite_new">
+爱特文管 最新版
+</option>
+<option value="fast_install">
+浪人程序快速安装工具(单文件)
+</option>
+value的值代表总文件夹下的指定程序文件夹
+例如浪人快速安装的值为fast_install
+$AppDir='install/'
+那么浪人快速安装的文件路径为 install/fast_install
+当然你可以稍微修改代码增加安全性.
+-------------------------------
+至于提交表单的安全性判断你们自己改吧.
+That's All :)
+*****************************************************/
+ini_set('display_errors', 'Off');
+ob_start();
+ob_end_clean();
+ob_implicit_flush(1);
+set_time_limit(0);
+
+$AppDir='';//安装程序存放的文件夹,格式为 install/
+
+function Ftp_Up($conn_id, $local_dir, $remote_dir) {
+	ftp_pasv($conn_id, true);
+	$dir = opendir($local_dir);
+	while ($file = readdir($dir)) {
+		if ($file != '.' && $file != '..') {
+			if (is_dir($local_dir . '/' . $file)) {
+				if (!@ftp_chdir($conn_id, $remote_dir . '/' . $file)) {
+					ftp_mkdir($conn_id, $remote_dir . '/' . $file);
+				}
+				Ftp_Up($conn_id, $local_dir . '/' . $file, $remote_dir . '/' . $file);
+			} else {
+				if (ftp_put($conn_id, $remote_dir . '/' . $file, $local_dir . '/' . $file, FTP_BINARY)) {
+					echo '<a class="list-group-item list-group-item-success" href="#">成功[' . $remote_dir . '/' . $file . ']</a>';
+				} else {
+					echo '<a class="list-group-item list-group-item-danger" href="#">失败[' . $remote_dir . '/' . $file . ']</a>';
+				}
+			}
+		}
+	}
+	closedir($dir);
+	ftp_close($conn_id);
+}
+if (isset($_POST['button']) && $_POST['ftp_server'] !== '' && $_POST['ftp_username'] !== '' && $_POST['ftp_password'] !== '' && $_POST['program'] !== '' && $_POST['ftp_address'] !== '') {
+	$server = $_POST['ftp_server'];
+	$username = $_POST['ftp_username'];
+	$password = $_POST['ftp_password'];
+	$program = $_POST['program'];
+	$address = $_POST['ftp_address'];
+	$conn_id = ftp_connect($server);
+	echo '<div class="panel panel-primary">
+ <div class="panel-heading">
+ <h3 class="panel-title">上传状态</h3>
+ </div>
+ <div class="panel-body">
+ <div class="list-group">';
+	if ($conn_id) {
+		echo '<a class="list-group-item list-group-item-success" href="#">连接ftp服务器成功</a>';
+		if (ftp_login($conn_id, $username, $password)) {
+			echo ' <a class="list-group-item list-group-item-success" href="#">登陆ftp服务器成功</a>';
+			Ftp_Up($conn_id, $AppDir . $program, $address);
+		} else {
+			echo '<a class="list-group-item list-group-item-danger" href="#">登陆ftp服务器失败，请检查输入信息是否准确</a>';
+		}
+	} else {
+		echo '<a class="list-group-item list-group-item-danger" href="#">连接ftp服务器失败，请检查输入信息是否准确</a>';
+	}
+	echo '
+</div>
+</div>
+</div>';
+} else {
+	echo '
+<div class="container">
+    		<div style="margin-top:30px;margin-bottom:10px;box-shadow: 5px 5px 40px rgba(0, 150, 255, 0.5);border-radius:2.5rem;"> 
+    			<div class="panel panel-primary" style="border-radius:2.5rem;border-bottom-width:1px;">
+<div class="panel-heading panel-title" style="border-radius:2.5rem 2.5rem 0 0;">
+
+		
+				<h3 class="text-center">
+					FTP快速上传
+				</h3>
+			</div>
+			<div class="panel-body">
+				<div class="form-group">
+                    <form name="input" action="" method="post" role="form" id="input" onsubmit="return validateForm()">
+                    <div class="input-group" style="width: 100%;"><span class="input-group-addon" style="width: 100px;">FTP服务器</span> 
+<input type="text" class="form-control" placeholder="可以是网址，也可以是ip地址，不要加http://" value="ftpperso.free.fr"  name="ftp_server" required>
+<span class="input-group-btn">
+                            <a class="btn btn-default" type="button" onclick="clearInput(this)">
+                                <span class="glyphicon glyphicon-remove"></span>
+                            </a>
+                        </span>
+						</div><br>
+<div class="input-group" style="width: 100%;">
+                            <span class="input-group-addon" style="width: 100px;">FTP端口</span> <input type="text" class="form-control" value="21" name="port" required>
+                        </div><br>
+						<div class="input-group" style="width: 100%;">
+							<span class="input-group-addon" style="width: 100px;">FTP用户名</span> <input type="text" class="form-control" placeholder="Useradmin" name="ftp_username">
+						</div><br>
+						<div class="input-group" style="width: 100%;">
+							<span class="input-group-addon" style="width: 100px;">FTP密码</span> <input type="text" class="form-control" placeholder="Password" name="ftp_password">
+						</div><br>
+						<div class="input-group" style="width: 100%;">
+							 <span class="input-group-addon" style="width: 100px;">上传路径</span> 
+	                            <select name="ftp_address" class="form-control">
+								<option value="other">选择上传路径</option>
+                                <option value="/public_html/">/public_html/</option>
+                                <option value="/wwwroot/">/wwwroot/</option>
+                                <option value="/htdocs/">/htdocs/</option>
+                                <option value="/web/">/web/</option>
+								<option value="/www/">/www/</option>
+								<option value="/">/</option>
+                                <option value="other">其它根目录(在下方填写)</option>
+                                </select>
+								<input type="text" class="form-control" placeholder="选其它根目录时填写" name="ftp_address2">
+						</div><br>
+						<div class="input-group" style="width: 100%;">
+    							<span class="input-group-addon" style="width: 100px;">安装程序</span>
+    							<select name="program" class="form-control">
+								    <option value="fast_install">选择安装程序</option>
+								    <option value="htaccess">Free.Fr空间开启PHP5.6</option>
+									<option value="yaheitz">雅黑探针</option>
+	                                <option value="upupw">UPUPW探针</option>
+									<option value="x-prober">X-Prober探针</option>
+	                                <option value="upzip">上传解压缩工具</option>
+	                                <option value="filebox">FileBox文件管理</option>
+	                                <option value="Tinyfilemanager">Tinyfilemanager文件管理</option>
+									<option value="delete">全部删除或选择删除当前目录下的文件</option>
+									<option value="index">简单单页</option>
+									<option value="404">404错误页</option>
+									<option value="HYBBS">HYBBS2.3.2</option>
+									<option value="imgurl">ImgURL1.4</option>
+									<option value="EasyImages">简单图床2.8.4</option>
+									<option value="FilesGallery">Files.Gallery0.8.4</option>
+									<option value="dirlist">彩虹目录列表程序1.3</option>
+                                </select>
+    							<input type="text" class="form-control" placeholder="请输入外链ZIP文件的URL" name="external_zip">
+    						</div><br>
+    						<button type="submit" class="btn btn-success btn-lg btn-block" name="button">---开始上传---</button></form><br>
+<div class="list-group">
+					<div style="text-align:left;">
+<div class="panel panel-default">
+  <div class="panel-heading">使用说明：</div>
+  <ul class="list-group">
+	<li class="list-group-item">Free.Fr空间FTP地址 <code>ftpperso.free.fr</code> 上传路径选择 <code>/</code> 即可！</li>
+    <li class="list-group-item">上传路径（可选）：默认路径为<code>/</code><br>安装程序（可选）：选择本地程序安装或者输入自己的zip安装包链接安装。</li>
+  </ul>
+  <div class="panel-heading">程序说明：</div>
+    <li class="list-group-item">Free.Fr空间先开启PHP5.6后在安装本站程序，如果没有开启，可在安装程序选择上传开启PHP5.6。</li>
+  <div class="panel-body">
+	<p>雅黑探针 <code>/tz.php</code></p>
+	<p>UPUPW探针 <code>/u.php</code></p>
+	<p>X-Prober探针 <code>/x.php</code></p>
+	<p>上传解压缩工具 <code>/upzip.php</code></p>
+	<p>FileBox文件管理 <code>/filebox.php</code> 账号<code>admin</code>密码<code>admin</code></p>
+	<p>Tinyfilemanager文件管理 <code>/tinyfilemanager.php</code> 账号<code>admin</code>密码<code>admin</code></p>
+	<p>全部删除或选择删除当前目录下的文件 <code>/delete.php</code></p>
+	<p>HYBBS论坛程序，已修改无错完美支持Free.fr空间安装管理。</p>
+	<p>ImgURL图床程序，因Free.fr不支持伪静态固选择1.4版本，程序已修改美化，完美支持后台管理。</p>
+	<p>简单图床本站已针对错误信息做已做修改，目前可以在Free.fr空间上无错安装和完美管理。</p>
+	<p>Files.Gallery是一款简洁的目录浏览程序，可当做相册或图库使用。已破解，上传后自行配置。</p>
+	<p>彩虹目录列表程序 默认用户名<code>admin</code> 默认密码<code>123456</code>
+ 
+					
+				</div>
+			</div>
+		</div>';
+}
+?> </div>
+
+				
+						<div style="text-align:right;">Powered by <a href="https://red.fr.cr" target="_blank">RED</a> Version: V9.9</div>
+						</div>
+					</div>
+			<script>
+    function clearInput(button) {
+        button.closest('.input-group').querySelector('input[type="text"]').value = '';
+    }
+
+    function togglePassword() {
+        var passwordInput = document.getElementById('ftp_password');
+        if (passwordInput.type === "password") {
+            passwordInput.type = "text";
+        } else {
+            passwordInput.type = "password";
+        }
+    }
+
+    // 新增表单验证函数
+    function validateForm() {
+        var programSelect = document.forms["input"]["program"].value;
+        var externalZipInput = document.forms["input"]["external_zip"].value;
+
+        // 检查是否选择了本地安装程序或输入了外链ZIP
+        if (programSelect === "fast_install" && externalZipInput === "") {
+            alert("请选择本地安装程序或输入外链ZIP链接。");
+            return false;
+        }
+        return true;
+    }
+</script>    		</div>
+			</div>
+		</div>
+    </body>
+</html>
